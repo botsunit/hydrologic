@@ -1,0 +1,11 @@
+(end ?) 
+  < input txt 
+  | a: locate /Hello/ 
+  | insert / World!/ after
+  | i: faninany
+  | > newfile txt a
+  ? a:
+  | xlate upper
+  | i:
+
+

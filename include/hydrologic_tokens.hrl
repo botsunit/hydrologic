@@ -1,0 +1,16 @@
+
+-define(is_digit(S), (S >= $0 andalso S =< $9)).
+-define(is_upcase(S), (S >= $A andalso S =< $Z)).
+-define(is_downcase(S), (S >= $a andalso S =< $z)).
+-define(is_space(S), ((S == $\s) orelse (S == $\t))).
+
+-define(is_identifier(S), (?is_upcase(S) orelse ?is_downcase(S))).
+
+-define(is_op(S), (not (?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse ?is_space(S)))).
+-define(dot_op(T), T == $.).
+-define(pipe_op(T), T == $|).
+-define(match_op(T), T == $=).
+-define(match_op2(T1, T2), T1 == $-, T2 == $>).
+-define(mult_op(T), T == $* orelse T == $/).
+-define(dual_op(T), T == $+ orelse T == $-).
+
