@@ -1,1 +1,5 @@
-[{<<"bucs">>,{pkg,<<"bucs">>,<<"1.0.8">>},0}].
+[{<<"bucs">>,{pkg,<<"bucs">>,<<"1.0.8">>},0},
+ {<<"uuid">>,
+  {git,"https://github.com/botsunit/erlang-uuid.git",
+       {ref,"f350d2baad17b80d1c7bde7397c381701a14e6a5"}},
+  0}].

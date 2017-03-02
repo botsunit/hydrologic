@@ -9,6 +9,58 @@ __Version:__ 0.0.1
 __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.lejeune@gmail.com)).
 
 
+### CORE ###
+
+`duplicate`
+
+`{merge, Function :: function()} | {merge, Module :: atom(), Function :: atom()`
+
+
+### STDLIB ###
+
+`console`
+
+`{console, Format :: string()}`
+
+
+### Create a worker ###
+
+```
+
+-spec worker(data()) -> {map, data()}
+                        | data()
+                        | {reduce, true | false}
+                        | {return, data()}
+                        | {error, term()}.
+
+```
+
+
+### Examples ###
+
+```
+
+hydrologic:new(
+  test,
+  [
+   {a, {fun(X) ->
+            {reduce, X rem 2 == 0}
+        end, b}},
+   fun(X) ->
+       {map, X * 2}
+   end,
+   {b, fun(X) ->
+           {map, X + 2}
+       end},
+   return
+  ]
+ ),
+hydrologic:run(test, 10), % => 22
+hydrologic:run(test, 7). % => 9
+
+```
+
+
 ### Licence ###
 
 Hydrologic is available for use under the following license, commonly known as the 3-clause (or "modified") BSD license:

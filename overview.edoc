@@ -4,6 +4,49 @@
 @title Hydrologic - A pipeline system
 @doc
 
+<h3>CORE</h3>
+
+<tt>duplicate</tt>
+
+<tt>{merge, Function :: function()} | {merge, Module :: atom(), Function :: atom()</tt>
+
+<h3>STDLIB</h3>
+
+<tt>console</tt>
+
+<tt>{console, Format :: string()}</tt>
+
+<h3>Create a worker</h3>
+
+<pre>
+-spec worker(data()) -> {map, data()}
+                        | data()
+                        | {reduce, true | false}
+                        | {return, data()}
+                        | {error, term()}.
+</pre>
+
+<h3>Examples</h3>
+
+<pre>
+hydrologic:new(
+  test,
+  [
+   {a, {fun(X) ->
+            {reduce, X rem 2 == 0}
+        end, b}},
+   fun(X) ->
+       {map, X * 2}
+   end,
+   {b, fun(X) ->
+           {map, X + 2}
+       end},
+   return
+  ]
+ ),
+hydrologic:run(test, 10), % => 22
+hydrologic:run(test, 7). % => 9
+</pre>
 
 <h3>Licence</h3>
 

@@ -16,25 +16,26 @@ hydrologic_stdlib_test_() ->
    end,
    [
     fun() ->
-        Pipeline = hydrologic:new([console]),
-        Result = hydrologic:run(Pipeline, 10),
-        ?assertEqual(10, Result),
+        hydrologic:new(test, [console]),
+        Result = hydrologic:run(test, 10),
+        ?assertEqual({ok, 10}, Result),
         ?assertCall(io, format, 2, 1),
-        hydrologic:stop(Pipeline)
+        hydrologic:stop(test)
     end,
     fun() ->
-        Pipeline = hydrologic:new(
-                     [
-                      fun(X) ->
-                          {map, X * 2}
-                      end,
-                      return,
-                      fun(X) -> %% Will never be called
-                          {map, X / 2}
-                      end
-                     ]
-                    ),
-        ?assertEqual(20, hydrologic:run(Pipeline, 10)),
-        hydrologic:stop(Pipeline)
+        hydrologic:new(
+          test,
+          [
+           fun(X) ->
+               {map, X * 2}
+           end,
+           return,
+           fun(X) -> %% Will never be called
+               {map, X / 2}
+           end
+          ]
+         ),
+        ?assertEqual({ok, 20}, hydrologic:run(test, 10)),
+        hydrologic:stop(test)
     end
    ]}.

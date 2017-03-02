@@ -1,1 +1,2 @@
-%{"bucs": {:hex, :bucs, "1.0.8", "24b80d65d8ecb2ea2ca05cfb1e5c80c4fec9696b1b2d27515fd692520d184200", [:make, :mix, :rebar3], []}}
+%{"bucs": {:hex, :bucs, "1.0.8", "24b80d65d8ecb2ea2ca05cfb1e5c80c4fec9696b1b2d27515fd692520d184200", [:make, :mix, :rebar3], []},
+  "uuid": {:git, "https://github.com/botsunit/erlang-uuid.git", "f350d2baad17b80d1c7bde7397c381701a14e6a5", [tag: "0.7.2"]}}

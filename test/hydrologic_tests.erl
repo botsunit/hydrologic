@@ -11,42 +11,79 @@ hydrologic_test_() ->
    end,
    [
     fun() ->
-        Pipeline = hydrologic:new(
-                     [
-                      {a, {fun(X) ->
-                               {reduce, X rem 2 == 0}
-                           end, b}},
-                      fun(X) ->
-                          {map, X * 2}
-                      end,
-                      {b, fun(X) ->
-                              {map, X + 2}
-                          end},
-                      return
-                     ]
-                    ),
-        ?assertEqual(22, hydrologic:run(Pipeline, 10)),
-        ?assertEqual(9, hydrologic:run(Pipeline, 7)),
-        hydrologic:stop(Pipeline)
+        hydrologic:new(
+          test,
+          [
+           fun(X) ->
+               X * 2
+           end,
+           fun(X) ->
+               X + 2
+           end
+          ]
+         ),
+        ?assertEqual({ok, 22}, hydrologic:run(test, 10)),
+        ?assertEqual({ok, 16}, hydrologic:run(test, 7)),
+        hydrologic:stop(test)
     end,
     fun() ->
-        Pipeline = hydrologic:new(
-                     [
-                      {fun(X) ->
-                           {reduce, X rem 2 == 0}
-                       end, a},
-                      fun(X) ->
-                          {map, X * 2}
-                      end,
-                      {b, fun(X) ->
-                              {map, X + 2}
-                          end},
-                      return,
-                      {a, b}
-                     ]
-                    ),
-        ?assertEqual(22, hydrologic:run(Pipeline, 10)),
-        ?assertEqual(9, hydrologic:run(Pipeline, 7)),
-        hydrologic:stop(Pipeline)
+        hydrologic:new(
+          test,
+          [
+           {a, {fun(X) ->
+                    {reduce, X rem 2 == 0}
+                end, b}},
+           fun(X) ->
+               {map, X * 2}
+           end,
+           {b, fun(X) ->
+                   {map, X + 2}
+               end},
+           return
+          ]
+         ),
+        ?assertEqual({ok, 22}, hydrologic:run(test, 10)),
+        ?assertEqual({ok, 9}, hydrologic:run(test, 7)),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           {fun(X) ->
+                {reduce, X rem 2 == 0}
+            end, a},
+           fun(X) ->
+               {map, X * 2}
+           end,
+           {b, fun(X) ->
+                   {map, X + 2}
+               end},
+           return,
+           {a, b}
+          ]
+         ),
+        ?assertEqual({ok, 22}, hydrologic:run(test, 10)),
+        ?assertEqual({ok, 9}, hydrologic:run(test, 7)),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           fun
+             (X) when X rem 2 == 0 ->
+               X * 2;
+             (_) ->
+               {error, odd}
+           end,
+           fun(X) ->
+               X + 2
+           end
+          ]
+         ),
+        ?assertEqual({ok, 22}, hydrologic:run(test, 10)),
+        ?assertEqual({error, odd, 7}, hydrologic:run(test, 7)),
+        hydrologic:stop(test)
     end
    ]}.
