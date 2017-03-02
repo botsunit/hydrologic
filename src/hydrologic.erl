@@ -4,6 +4,7 @@
 -export([
          new/2,
          run/2,
+         flow/2,
          stop/1
         ]).
 
@@ -32,6 +33,7 @@ run(Pipe, Data) ->
         name => Pipe,
         uuid => uuid:to_string(uuid:uuid4()),
         fan => -1,
+        flow => bucs:is_list_of_lists(Data),
         data => Data,
         error => none},
       receive
@@ -45,6 +47,10 @@ run(Pipe, Data) ->
     _ ->
       {error, invalid_pipe}
   end.
+
+% @equiv run(Pipe, Data)
+flow(Pipe, Data) ->
+  run(Pipe, Data).
 
 % @doc
 % Destroy the given pipe.
@@ -269,9 +275,9 @@ gosub(Receiver, Pid) ->
       gosub(Receiver, Pid)
   end.
 
-merge(#{fan := Fan1, uuid := UUID, data := Data1, name := Name} = Record, Pid, Function) ->
+merge(#{fan := Fan1, uuid := UUID, data := Data1, name := Name, flow := Flow} = Record, Pid, Function) ->
   case ets:lookup(Name, UUID) of
-    [{UUID, #{fan := Fan0, uuid := UUID, data := Data0, name := Name}}] ->
+    [{UUID, #{fan := Fan0, uuid := UUID, data := Data0, name := Name, flow := Flow}}] ->
       ets:delete(Name, UUID),
       NewData = mergefun(Function,
                          case Fan0 < Fan1 of
@@ -283,6 +289,7 @@ merge(#{fan := Fan1, uuid := UUID, data := Data1, name := Name} = Record, Pid, F
       Pid ! #{name => Name,
               uuid => UUID,
               fan => -1,
+              flow => Flow,
               data => NewData,
               error => none},
       ok;

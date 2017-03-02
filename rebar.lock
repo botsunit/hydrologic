@@ -1,6 +1,6 @@
 [{<<"bucs">>,
   {git,"https://github.com/botsunit/bucs.git",
-       {ref,"d43af4eee2ae4802af650c98436e38f46f7fabba"}},
+       {ref,"580559efe663a9488d01162225151dea0225e13a"}},
   0},
  {<<"uuid">>,
   {git,"https://github.com/botsunit/erlang-uuid.git",

@@ -9,6 +9,9 @@ defmodule Hydrologic do
   def unquote(:"run")(arg1, arg2) do
     :erlang.apply(:"hydrologic", :"run", [arg1, arg2])
   end
+  def unquote(:"flow")(arg1, arg2) do
+    :erlang.apply(:"hydrologic", :"flow", [arg1, arg2])
+  end
   def unquote(:"stop")(arg1) do
     :erlang.apply(:"hydrologic", :"stop", [arg1])
   end

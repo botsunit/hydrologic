@@ -44,7 +44,7 @@ pipe() = atom()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-2">new/2</a></td><td>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#flow-2">flow/2</a></td><td>Equivalent to <a href="#run-2"><tt>run(Pipe, Data)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>
 Create a new pipe.</td></tr><tr><td valign="top"><a href="#run-2">run/2</a></td><td>.</td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td>
 Destroy the given pipe.</td></tr></table>
 
@@ -52,6 +52,14 @@ Destroy the given pipe.</td></tr></table>
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="flow-2"></a>
+
+### flow/2 ###
+
+`flow(Pipe, Data) -> any()`
+
+Equivalent to [`run(Pipe, Data)`](#run-2).
 
 <a name="new-2"></a>
 
