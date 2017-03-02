@@ -14,7 +14,11 @@
 
 <tt>console</tt>
 
-<tt>{console, Format :: string()}</tt>
+<tt>{console, [Format :: string()]}</tt>
+
+<tt>{match, [Regex :: string()]}</tt>
+
+<tt>{pad, [Direction :: left | right, Size :: integer(), Char :: integer()]} | {pad, [Size :: integer(), Char :: integer()]}</tt>
 
 <h3>Create a worker</h3>
 

@@ -22,7 +22,7 @@ defmodule Hydrologic.Mixfile do
 
   defp deps do
     [
-      {:bucs, "~> 1.0.6"},
+      {:bucs, git: "https://github.com/botsunit/bucs.git", branch: "master"},
       {:uuid, git: "https://github.com/botsunit/erlang-uuid.git", tag: "0.7.2"}    
     ]
   end

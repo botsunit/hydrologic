@@ -20,7 +20,11 @@ __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.le
 
 `console`
 
-`{console, Format :: string()}`
+`{console, [Format :: string()]}`
+
+`{match, [Regex :: string()]}`
+
+`{pad, [Direction :: left | right, Size :: integer(), Char :: integer()]} | {pad, [Size :: integer(), Char :: integer()]}`
 
 
 ### Create a worker ###

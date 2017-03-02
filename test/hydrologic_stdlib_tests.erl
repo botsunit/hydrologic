@@ -5,22 +5,24 @@
 hydrologic_stdlib_test_() ->
   {setup,
    fun() ->
-       meck:new(io, [passthrough, unstick]),
-       meck:expect(io, format, fun(_Format, _Data) ->
-                                   %?debugFmt(Format, Data)
-                                   ok
-                               end)
+       ok
    end,
    fun(_) ->
-       meck:unload(io)
+       ok
    end,
    [
     fun() ->
+        meck:new(io, [passthrough, unstick]),
+        meck:expect(io, format, fun(_Format, _Data) ->
+                                    %?debugFmt(Format, Data)
+                                    ok
+                                end),
         hydrologic:new(test, [console]),
         Result = hydrologic:run(test, 10),
         ?assertEqual({ok, 10}, Result),
         ?assertCall(io, format, 2, 1),
-        hydrologic:stop(test)
+        hydrologic:stop(test),
+        meck:unload(io)
     end,
     fun() ->
         hydrologic:new(
@@ -36,6 +38,95 @@ hydrologic_stdlib_test_() ->
           ]
          ),
         ?assertEqual({ok, 20}, hydrologic:run(test, 10)),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           {match, ["world"]}
+          ]
+         ),
+        ?assertEqual({ok, "hello world"}, hydrologic:run(test, "hello world")),
+        ?assertEqual({ok, "world of love"}, hydrologic:run(test, "world of love")),
+        ?assertEqual({ok, "the world is beautiful"}, hydrologic:run(test, "the world is beautiful")),
+        ?assertEqual({ok, <<"hello world">>}, hydrologic:run(test, <<"hello world">>)),
+        ?assertEqual({ok, 'hello world'}, hydrologic:run(test, 'hello world')),
+        ?assertEqual(ok, hydrologic:run(test, "hola mundo")),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        meck:new(io, [passthrough, unstick]),
+        meck:expect(io, format, fun(_Format, _Data) ->
+                                    %?debugFmt(Format, Data)
+                                    ok
+                                end),
+        hydrologic:new(
+          test,
+          [
+           {{match, ["world"]}, a},
+           {b, return},
+           {a, console},
+           b
+          ]
+         ),
+        ?assertCall(io, format, 2, 0),
+        ?assertEqual({ok, "hello world"}, hydrologic:run(test, "hello world")),
+        ?assertCall(io, format, 2, 0),
+        ?assertEqual({ok, "hola mundo"}, hydrologic:run(test, "hola mundo")),
+        ?assertCall(io, format, 2, 1),
+        hydrologic:stop(test),
+        meck:unload(io)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           {pad, [10, $.]}
+          ]
+         ),
+        ?assertEqual({ok, "hello....."}, hydrologic:run(test, "hello")),
+        ?assertEqual({ok, <<"hello.....">>}, hydrologic:run(test, <<"hello">>)),
+        ?assertEqual({ok, 'hello.....'}, hydrologic:run(test, 'hello')),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           {pad, [right, 10, $.]}
+          ]
+         ),
+        ?assertEqual({ok, "hello....."}, hydrologic:run(test, "hello")),
+        ?assertEqual({ok, <<"hello.....">>}, hydrologic:run(test, <<"hello">>)),
+        ?assertEqual({ok, 'hello.....'}, hydrologic:run(test, 'hello')),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           {pad, [left, 10, $.]}
+          ]
+         ),
+        ?assertEqual({ok, ".....hello"}, hydrologic:run(test, "hello")),
+        ?assertEqual({ok, <<".....hello">>}, hydrologic:run(test, <<"hello">>)),
+        ?assertEqual({ok, '.....hello'}, hydrologic:run(test, 'hello')),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [
+           {chop, [7]}
+          ]
+         ),
+        ?assertEqual({ok, "hello w"}, hydrologic:run(test, "hello world")),
+        ?assertEqual({ok, <<"hello w">>}, hydrologic:run(test, <<"hello world">>)),
+        ?assertEqual({ok, 'hello w'}, hydrologic:run(test, 'hello world')),
+        ?assertEqual({ok, "hello"}, hydrologic:run(test, "hello")),
+        ?assertEqual({ok, <<"hello">>}, hydrologic:run(test, <<"hello">>)),
+        ?assertEqual({ok, 'hello'}, hydrologic:run(test, 'hello')),
         hydrologic:stop(test)
     end
    ]}.

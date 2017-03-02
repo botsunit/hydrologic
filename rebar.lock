@@ -1,4 +1,7 @@
-[{<<"bucs">>,{pkg,<<"bucs">>,<<"1.0.8">>},0},
+[{<<"bucs">>,
+  {git,"https://github.com/botsunit/bucs.git",
+       {ref,"d43af4eee2ae4802af650c98436e38f46f7fabba"}},
+  0},
  {<<"uuid">>,
   {git,"https://github.com/botsunit/erlang-uuid.git",
        {ref,"f350d2baad17b80d1c7bde7397c381701a14e6a5"}},
