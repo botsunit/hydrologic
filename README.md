@@ -50,6 +50,8 @@ __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.le
 
 ### Examples ###
 
+[](http://yuml.me/diagram/scruffy;dir:LR/class/%2F%2F Cool Class Diagram, [a|X rem 2 == 0|b]->[b|X + 2], [a|X rem 2 == 0|b]->[X * 2], [X * 2]->[b|X + 2])
+
 ```
 
 hydrologic:new(
