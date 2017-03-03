@@ -12,14 +12,12 @@ hydrologic_flow_tests_test_() ->
    [
     fun() ->
         hydrologic:new(
-          test,
+          testf,
           [
            {fun(X) ->
                 {reduce, X rem 2 == 0}
             end, a},
-           {b, {merge, fun(_X1, _X2) ->
-                           0
-                       end}},
+           {b, fanin},
            return,
            {a, fun(X) ->
                    X * 2
@@ -28,7 +26,24 @@ hydrologic_flow_tests_test_() ->
           ]
          ),
         ?assertEqual({ok, [2, 2, 6, 4]},
-                     hydrologic:run(test, [1, 2, 3, 4])),
+                     hydrologic:run(testf, [1, 2, 3, 4])),
+        hydrologic:new(
+          test,
+          [
+           {fun(X) ->
+                {reduce, X rem 2 == 0}
+            end, aa},
+           {bb, return},
+           {aa, fun(X) ->
+                   X * 2
+               end},
+           bb
+          ]
+         ),
+        ?assertEqual(
+           {ok, [Y || {ok, Y} <- [hydrologic:run(test, X) || X <- [1, 2, 3, 4]]]},
+           hydrologic:run(testf, [1, 2, 3, 4])),
+        hydrologic:stop(testf),
         hydrologic:stop(test)
     end,
     fun() ->
