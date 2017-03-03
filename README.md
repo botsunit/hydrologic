@@ -15,6 +15,8 @@ __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.le
 
 `{merge, Function :: function()} | {merge, Module :: atom(), Function :: atom()`
 
+`fanin | {fanin, 0} | {fanin, 1}`
+
 
 ### STDLIB ###
 

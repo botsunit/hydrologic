@@ -33,12 +33,14 @@ run(Pipe, Data) ->
         name => Pipe,
         uuid => uuid:to_string(uuid:uuid4()),
         fan => -1,
-        flow => bucs:is_list_of_lists(Data),
+        flow => erlang:is_list(Data) andalso not bucs:is_string(Data),
         data => Data,
         error => none},
       receive
-        #{error := none, data := Response} ->
+        #{error := none, data := Response, flow := false} ->
           {ok, Response};
+        #{error := none, data := Response, flow := true} ->
+          {ok, remove_empty(Response)};
         #{error := Error, data := Response} ->
           {error, Error, Response};
         Other ->
@@ -101,192 +103,246 @@ make_worker(Worker, Receiver, EndPID) when ?IS_WORKER(Worker),
                         worker(Worker, Receiver, EndPID)
                     end).
 
-worker({merge, Function}, Pid, EndPID) when ?IS_RECEIVER(Pid),
+worker({merge, Function}, PID, EndPID) when ?IS_RECEIVER(PID),
                                             ?IS_RECEIVER(EndPID) ->
   receive
     eof ->
-      Pid ! eof;
+      PID ! eof;
     #{fan := -1} = Record ->
-      Pid ! Record,
-      worker(merge, Pid, EndPID);
+      PID ! Record,
+      worker(merge, PID, EndPID);
     Record ->
-      case merge(Record, Pid, Function) of
+      case merge(Record, PID, Function) of
         ok ->
-          worker({merge, Function}, Pid, EndPID);
+          worker({merge, Function}, PID, EndPID);
         error ->
-          Pid ! eof % TODO: stop the stream
+          PID ! eof % TODO: stop the stream
       end
   end;
-worker({duplicate, AltPid}, Pid, EndPID) when ?IS_RECEIVER(AltPid),
-                                           ?IS_RECEIVER(Pid),
+worker(fanin, PID, EndPID) when ?IS_RECEIVER(PID),
+                                ?IS_RECEIVER(EndPID) ->
+  worker({fanin, 0}, PID, EndPID);
+worker({fanin, 0}, PID, EndPID) ->
+  worker({merge, fun(X, _) -> {map, X} end}, PID, EndPID);
+worker({fanin, 1}, PID, EndPID) ->
+  worker({merge, fun(_, X) -> {map, X} end}, PID, EndPID);
+worker({duplicate, AltPID}, PID, EndPID) when ?IS_RECEIVER(AltPID),
+                                           ?IS_RECEIVER(PID),
                                            ?IS_RECEIVER(EndPID) ->
   receive
     eof ->
-      Pid ! eof;
+      PID ! eof;
     Record ->
-      AltPid ! Record#{fan => 1},
-      Pid ! Record#{fan => 0},
-      worker({duplicate, AltPid}, Pid, EndPID)
+      AltPID ! Record#{fan => 1},
+      PID ! Record#{fan => 0},
+      worker({duplicate, AltPID}, PID, EndPID)
   end;
-worker(Fun, Pid, EndPID) when is_function(Fun, 1),
-                              ?IS_RECEIVER(Pid),
+worker(Fun, PID, EndPID) when is_function(Fun, 1),
+                              ?IS_RECEIVER(PID),
                               ?IS_RECEIVER(EndPID) ->
   receive
     eof ->
-      Pid ! eof;
-    #{data := Data} = Record ->
-      response(
-        Pid,
-        EndPID,
-        Record,
-        erlang:apply(Fun, [Data])),
-      worker(Fun, Pid, EndPID)
+      PID ! eof;
+    #{flow := false} = Record ->
+      response(PID, EndPID, Record, Fun),
+      worker(Fun, PID, EndPID);
+    #{flow := true} = Record ->
+      flow_response(PID, EndPID, Record, Fun),
+      worker(Fun, PID, EndPID)
   end;
-worker({Fun, AltPid} = Worker, Pid, EndPID) when is_function(Fun, 1),
-                                                 ?IS_RECEIVER(AltPid),
-                                                 ?IS_RECEIVER(Pid),
+worker({Fun, AltPID} = Worker, PID, EndPID) when is_function(Fun, 1),
+                                                 ?IS_RECEIVER(AltPID),
+                                                 ?IS_RECEIVER(PID),
                                                  ?IS_RECEIVER(EndPID) ->
   receive
     eof ->
-      Pid ! eof;
-    #{data := Data} = Record ->
-      response(
-        Pid,
-        AltPid,
-        EndPID,
-        Record,
-        erlang:apply(Fun, [Data])),
-      worker(Worker, Pid, EndPID)
+      PID ! eof;
+    #{flow := false} = Record ->
+      response(PID, AltPID, EndPID, Record, Fun),
+      worker(Worker, PID, EndPID);
+    #{flow := true} = Record ->
+      flow_response(PID, AltPID, EndPID, Record, Fun),
+      worker(Worker, PID, EndPID)
   end;
-worker({Module, Function, Args} = Worker, Pid, EndPID) when is_atom(Module),
+worker({Module, Function, Args} = Worker, PID, EndPID) when is_atom(Module),
                                                             is_atom(Function),
                                                             is_list(Args),
-                                                            ?IS_RECEIVER(Pid),
+                                                            ?IS_RECEIVER(PID),
                                                             ?IS_RECEIVER(EndPID) ->
   receive
     eof ->
-      Pid ! eof;
-    #{data := Data} = Record ->
-      response(
-        Pid,
-        EndPID,
-        Record,
-        erlang:apply(Module, Function, [Data|Args])),
-      worker(Worker, Pid, EndPID)
+      PID ! eof;
+    #{flow := false} = Record ->
+      response( PID, EndPID, Record, {Module, Function, Args}),
+      worker(Worker, PID, EndPID);
+    #{flow := true} = Record ->
+      flow_response(PID, EndPID, Record, {Module, Function, Args}),
+      worker(Worker, PID, EndPID)
   end;
-worker({{Module, Function, Args}, AltPid} = Worker, Pid, EndPID) when is_atom(Module),
+worker({{Module, Function, Args}, AltPID} = Worker, PID, EndPID) when is_atom(Module),
                                                                       is_atom(Function),
                                                                       is_list(Args),
-                                                                      ?IS_RECEIVER(AltPid),
-                                                                      ?IS_RECEIVER(Pid),
+                                                                      ?IS_RECEIVER(AltPID),
+                                                                      ?IS_RECEIVER(PID),
                                                                       ?IS_RECEIVER(EndPID) ->
   receive
     eof ->
-      Pid ! eof;
-    #{data := Data} = Record ->
-      response(
-        Pid,
-        AltPid,
-        EndPID,
-        Record,
-        erlang:apply(Module, Function, [Data|Args])),
-      worker(Worker, Pid, EndPID)
+      PID ! eof;
+    #{flow := false} = Record ->
+      response(PID, AltPID, EndPID, Record, {Module, Function, Args}),
+      worker(Worker, PID, EndPID);
+      #{flow := true} = Record ->
+      flow_response(PID, AltPID, EndPID, Record, {Module, Function, Args}),
+      worker(Worker, PID, EndPID)
   end;
-worker({Module, Function}, Pid, EndPID) when is_atom(Module),
+worker({Module, Function}, PID, EndPID) when is_atom(Module),
                                              is_atom(Function),
-                                             ?IS_RECEIVER(Pid),
+                                             ?IS_RECEIVER(PID),
                                              ?IS_RECEIVER(EndPID) ->
-  worker({Module, Function, []}, Pid, EndPID);
-worker({{Module, Function}, AltPid}, Pid, EndPID) when is_atom(Module),
+  worker({Module, Function, []}, PID, EndPID);
+worker({{Module, Function}, AltPID}, PID, EndPID) when is_atom(Module),
                                                        is_atom(Function),
-                                                       ?IS_RECEIVER(AltPid),
-                                                       ?IS_RECEIVER(Pid),
+                                                       ?IS_RECEIVER(AltPID),
+                                                       ?IS_RECEIVER(PID),
                                                        ?IS_RECEIVER(EndPID) ->
-  worker({{Module, Function, []}, AltPid}, Pid, EndPID);
-worker(FunctionOrReceiver, Pid, EndPID) when is_atom(FunctionOrReceiver),
-                                             ?IS_RECEIVER(Pid),
+  worker({{Module, Function, []}, AltPID}, PID, EndPID);
+worker(FunctionOrReceiver, PID, EndPID) when is_atom(FunctionOrReceiver),
+                                             ?IS_RECEIVER(PID),
                                              ?IS_RECEIVER(EndPID) ->
   case bucs:function_exists(hydrologic_stdlib, FunctionOrReceiver, 1) of
     true ->
-      worker({hydrologic_stdlib, FunctionOrReceiver, []}, Pid, EndPID);
+      worker({hydrologic_stdlib, FunctionOrReceiver, []}, PID, EndPID);
     false ->
       case whereis(FunctionOrReceiver) of
         undefined ->
           EndPID ! {error, {undefined, FunctionOrReceiver}};
         _ ->
-          gosub(FunctionOrReceiver, Pid),
-          worker(FunctionOrReceiver, Pid, EndPID)
+          gosub(FunctionOrReceiver, PID),
+          worker(FunctionOrReceiver, PID, EndPID)
       end
   end;
-worker({Function, Args}, Pid, EndPID) when is_atom(Function),
+worker({Function, Args}, PID, EndPID) when is_atom(Function),
                                            is_list(Args) ,
-                                           ?IS_RECEIVER(Pid),
+                                           ?IS_RECEIVER(PID),
                                            ?IS_RECEIVER(EndPID) ->
-  worker({hydrologic_stdlib, Function, Args}, Pid, EndPID);
-worker({Function, AltPid}, Pid, EndPID) when is_atom(Function),
-                                             ?IS_RECEIVER(AltPid),
-                                             ?IS_RECEIVER(Pid),
+  worker({hydrologic_stdlib, Function, Args}, PID, EndPID);
+worker({Function, AltPID}, PID, EndPID) when is_atom(Function),
+                                             ?IS_RECEIVER(AltPID),
+                                             ?IS_RECEIVER(PID),
                                              ?IS_RECEIVER(EndPID) ->
-  worker({{hydrologic_stdlib, Function, []}, AltPid}, Pid, EndPID);
-worker({{Function, Args}, AltPid}, Pid, EndPID) when is_atom(Function),
+  worker({{hydrologic_stdlib, Function, []}, AltPID}, PID, EndPID);
+worker({{Function, Args}, AltPID}, PID, EndPID) when is_atom(Function),
                                                      is_list(Args),
-                                                     ?IS_RECEIVER(AltPid),
-                                                     ?IS_RECEIVER(Pid),
+                                                     ?IS_RECEIVER(AltPID),
+                                                     ?IS_RECEIVER(PID),
                                                      ?IS_RECEIVER(EndPID) ->
-  worker({{hydrologic_stdlib, Function, Args}, AltPid}, Pid, EndPID).
+  worker({{hydrologic_stdlib, Function, Args}, AltPID}, PID, EndPID).
 
-response(Pid, EndPID, Record, Response) ->
-  case Response of
-    {map, NewData} ->
-      Pid ! Record#{data => NewData};
-    {reduce, true} ->
-      Pid ! Record;
-    {reduce, false} ->
-      EndPID ! ok;
-    {return, NewData} ->
-      EndPID ! Record#{data => NewData};
-    {error, Error} ->
-      EndPID ! Record#{error => Error};
-    Other ->
-      Pid ! Record#{data => Other}
+response(PID, EndPID, #{data := Data} = Record, Function) ->
+  case is_receiver(PID) of
+    true ->
+      case callfun(Function, [Data]) of
+        {map, NewData} ->
+          PID ! Record#{data => NewData};
+        {reduce, true} ->
+          PID ! Record;
+        {reduce, false} ->
+          EndPID ! ok;
+        {return, NewData} ->
+          EndPID ! Record#{data => NewData};
+        {error, Error} ->
+          EndPID ! Record#{error => Error};
+        Other ->
+          PID ! Record#{data => Other}
+      end;
+    false ->
+      EndPID ! Record#{error => invalid_pipe}
   end.
-response(Pid, AltPid, EndPID, Record, Response) ->
-  case Response of
-    {map, NewData} ->
-      Pid ! Record#{data => NewData};
-    {reduce, true} ->
-      Pid ! Record;
-    {reduce, false} ->
-      AltPid ! Record;
-    {return, NewData} ->
-      EndPID ! Record#{data => NewData};
-    {error, Error} ->
-      EndPID ! Record#{error => Error};
-    Other ->
-      Pid ! Record#{data => Other}
+response(PID, AltPID, EndPID, #{data := Data} = Record, Function) ->
+  case is_receiver(PID) of
+    true ->
+      case callfun(Function, [Data]) of
+        {map, NewData} ->
+          PID ! Record#{data => NewData};
+        {reduce, true} ->
+          PID ! Record;
+        {reduce, false} ->
+          AltPID ! Record;
+        {return, NewData} ->
+          EndPID ! Record#{data => NewData};
+        {error, Error} ->
+          EndPID ! Record#{error => Error};
+        Other ->
+          PID ! Record#{data => Other}
+      end;
+    false ->
+      EndPID ! Record#{error => invalid_pipe}
   end.
 
-gosub(Receiver, Pid) ->
+flow_response(PID, EndPID, #{data := Data} = Record, Function) ->
+  case is_receiver(PID) of
+    true ->
+      case callfun(Data, Function, '$', [], []) of
+        {map, NewData, _} ->
+          PID ! Record#{data => NewData};
+        {reduce, NewData, _} ->
+          PID ! Record#{data => NewData};
+        {return, NewData, _} ->
+          EndPID ! Record#{data => NewData};
+        {error, Error} ->
+          EndPID ! Record#{error => Error}
+      end;
+    false ->
+      EndPID ! Record#{error => invalid_pipe}
+  end.
+flow_response(PID, AltPID, EndPID, #{data := Data} = Record, Function) ->
+  case is_receiver(PID) of
+    true ->
+      case callfun(Data, Function, '$', [], []) of
+        {map, NewData, _} ->
+          PID ! Record#{data => NewData};
+        {reduce, NewData0, NewData1} ->
+          PID ! Record#{data => NewData0, fan => 0},
+          AltPID ! Record#{data => NewData1, fan => 1};
+        {return, NewData, _} ->
+          EndPID ! Record#{data => NewData};
+        {error, Error} ->
+          EndPID ! Record#{error => Error}
+      end;
+    false ->
+      EndPID ! Record#{error => invalid_pipe}
+  end.
+
+gosub(Receiver, PID) ->
   receive
     eof ->
-      Pid ! eof;
+      PID ! eof;
     Data ->
       Receiver ! Data,
-      gosub(Receiver, Pid)
+      gosub(Receiver, PID)
   end.
 
-merge(#{fan := Fan1, uuid := UUID, data := Data1, name := Name, flow := Flow} = Record, Pid, Function) ->
+merge(#{fan := Fan1, uuid := UUID, data := Data1, name := Name, flow := Flow} = Record, PID, Function) ->
   case ets:lookup(Name, UUID) of
     [{UUID, #{fan := Fan0, uuid := UUID, data := Data0, name := Name, flow := Flow}}] ->
       ets:delete(Name, UUID),
-      NewData = mergefun(Function,
-                         case Fan0 < Fan1 of
-                           true ->
-                             [Data0, Data1];
-                           false ->
-                             [Data1, Data0]
-                         end),
-      Pid ! #{name => Name,
+      NewData = case Flow of
+                  false -> callfun(Function,
+                                   case Fan0 < Fan1 of
+                                     true ->
+                                       [Data0, Data1];
+                                     false ->
+                                       [Data1, Data0]
+                                   end);
+                  true ->
+                    merge_flow(case Fan0 < Fan1 of
+                                 true ->
+                                   {Data0, Data1};
+                                 false ->
+                                   {Data1, Data0}
+                               end, Function)
+                end,
+      PID ! #{name => Name,
               uuid => UUID,
               fan => -1,
               flow => Flow,
@@ -300,7 +356,74 @@ merge(#{fan := Fan1, uuid := UUID, data := Data1, name := Name, flow := Flow} = 
       error
   end.
 
-mergefun({Module, Function}, Args) ->
+callfun({Module, Function, Args0}, Args1) when is_atom(Module),
+                                               is_atom(Function),
+                                               is_list(Args0),
+                                               is_list(Args1) ->
+  callfun({Module, Function}, Args1 ++ Args0);
+callfun({Module, Function}, Args) when is_atom(Module),
+                                       is_atom(Function),
+                                       is_list(Args) ->
   erlang:apply(Module, Function, Args);
-mergefun(Function, Args) ->
+callfun({Function, Args0}, Args1) when is_list(Args0) andalso
+                                       is_list(Args1) andalso
+                                       is_function(Function, length(Args0) + length(Args1)) ->
+  callfun(Function, Args1 ++ Args0);
+callfun(Function, Args) when is_list(Args) andalso
+                             is_function(Function, length(Args)) ->
   erlang:apply(Function, Args).
+
+callfun([], _, Type, Acc0, Acc1) ->
+  {Type, lists:reverse(Acc0), lists:reverse(Acc1)};
+callfun(['$empty$'|Rest], Function, Type, Acc0, Acc1) ->
+  callfun(Rest, Function, Type, ['$empty$'|Acc0], Acc1);
+callfun([Data|Rest], Function, Type, Acc0, Acc1) ->
+  next_call(Data, Rest, Function, Type, Acc0, Acc1, callfun(Function, [Data])).
+
+next_call(_, Rest, Function, Type0, Acc0, Acc1, {map, NewData}) when Type0 == map;
+                                                                     Type0 == '$' ->
+  callfun(Rest, Function, map, [NewData|Acc0], Acc1);
+next_call(Data, Rest, Function, Type0, Acc0, Acc1, {reduce, true}) when Type0 == reduce;
+                                                                        Type0 == '$' ->
+  callfun(Rest, Function, reduce, [Data|Acc0], ['$empty$'|Acc1]);
+next_call(Data, Rest, Function, Type0, Acc0, Acc1, {reduce, false}) when Type0 == reduce;
+                                                                         Type0 == '$' ->
+  callfun(Rest, Function, reduce, ['$empty$'|Acc0], [Data|Acc1]);
+next_call(_, Rest, Function, Type0, Acc0, Acc1, {return, NewData}) when Type0 == return;
+                                                                        Type0 == '$' ->
+  callfun(Rest, Function, return, [NewData|Acc0], Acc1);
+next_call(_, _, _, _, _, _, {error, _} = Error) ->
+  Error;
+next_call(_, Rest, Function, Type0, Acc0, Acc1, Other) when Type0 == map;
+                                                            Type0 == '$' ->
+  callfun(Rest, Function, map, [Other|Acc0], Acc1).
+
+remove_empty([]) ->
+  [];
+remove_empty(['$empty$'|Rest]) ->
+  Rest;
+remove_empty([X|Rest]) ->
+  [X|remove_empty(Rest)].
+
+merge_flow({[], []}, _) ->
+  [];
+merge_flow({[], Rest1}, _) ->
+  Rest1;
+merge_flow({Rest0, []}, _) ->
+  Rest0;
+merge_flow({[Data0|Rest0], ['$empty$'|Rest1]}, Function) ->
+  [Data0|merge_flow({Rest0, Rest1}, Function)];
+merge_flow({['$empty$'|Rest0], ['$empty$'|Rest1]}, Function) ->
+  ['$empty$'|merge_flow({Rest0, Rest1}, Function)];
+merge_flow({['$empty$'|Rest0], [Data1|Rest1]}, Function) ->
+  [Data1|merge_flow({Rest0, Rest1}, Function)];
+merge_flow({[Data0|Rest0], ['$empty$'|Rest1]}, Function) ->
+  [Data0|merge_flow({Rest0, Rest1}, Function)];
+merge_flow({[Data0|Rest0], [Data1|Rest1]}, Function) ->
+  [erlang:apply(Function, [Data0, Data1])|merge_flow({Rest0, Rest1}, Function)].
+
+is_receiver(Anchor) when is_pid(Anchor) -> true;
+is_receiver(Anchor) when is_atom(Anchor) ->
+  is_pid(erlang:whereis(Anchor));
+is_receiver(_) -> false.
+

@@ -10,6 +10,8 @@
 
 <tt>{merge, Function :: function()} | {merge, Module :: atom(), Function :: atom()</tt>
 
+<tt>fanin | {fanin, 0} | {fanin, 1}</tt>
+
 <h3>STDLIB</h3>
 
 <tt>console</tt>
