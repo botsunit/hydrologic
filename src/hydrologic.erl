@@ -195,11 +195,16 @@ worker({{Module, Function, Args}, AltPID} = Worker, PID, EndPID) when is_atom(Mo
       flow_response(PID, AltPID, EndPID, Record, {Module, Function, Args}),
       worker(Worker, PID, EndPID)
   end;
-worker({Module, Function}, PID, EndPID) when is_atom(Module),
-                                             is_atom(Function),
-                                             ?IS_RECEIVER(PID),
-                                             ?IS_RECEIVER(EndPID) ->
-  worker({Module, Function, []}, PID, EndPID);
+worker({ModuleOrFunction, FunctionOrLabel}, PID, EndPID) when is_atom(ModuleOrFunction),
+                                                              is_atom(FunctionOrLabel),
+                                                              ?IS_RECEIVER(PID),
+                                                              ?IS_RECEIVER(EndPID) ->
+  case bucs:function_exists(ModuleOrFunction, FunctionOrLabel, 1) of
+    true ->
+      worker({ModuleOrFunction, FunctionOrLabel, []}, PID, EndPID);
+    false ->
+      worker({{hydrologic_stdlib, ModuleOrFunction, []}, FunctionOrLabel}, PID, EndPID)
+  end;
 worker({{Module, Function}, AltPID}, PID, EndPID) when is_atom(Module),
                                                        is_atom(Function),
                                                        ?IS_RECEIVER(AltPID),
@@ -401,7 +406,7 @@ next_call(_, Rest, Function, Type0, Acc0, Acc1, Other) when Type0 == map;
 remove_empty([]) ->
   [];
 remove_empty(['$empty$'|Rest]) ->
-  Rest;
+  remove_empty(Rest);
 remove_empty([X|Rest]) ->
   [X|remove_empty(Rest)].
 

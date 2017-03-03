@@ -1,5 +1,8 @@
 -define(IS_RECEIVER(X), (is_pid(X) orelse
                          (is_atom(X) andalso
+                          % Not and strlib function
+                          X =/= odd andalso
+                          X =/= even andalso
                           % Not a core function
                           X =/= duplicate andalso
                           X =/= fanin andalso

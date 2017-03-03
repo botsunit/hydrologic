@@ -128,5 +128,71 @@ hydrologic_stdlib_test_() ->
         ?assertEqual({ok, <<"hello">>}, hydrologic:run(test, <<"hello">>)),
         ?assertEqual({ok, 'hello'}, hydrologic:run(test, 'hello')),
         hydrologic:stop(test)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [even]),
+        ?assertEqual({ok, [2, 4]},
+                     hydrologic:run(test, [1, 2, 3, 4])),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        meck:new(io, [passthrough, unstick]),
+        meck:expect(io, format, fun(_Format, _Data) ->
+                                    % ?debugFmt(Format, Data),
+                                    ok
+                                end),
+        hydrologic:new(
+          test,
+          [
+           {even, a},
+           {b, return},
+           {a, console},
+           b
+          ]
+         ),
+        ?assertCall(io, format, 2, 0),
+        ?assertEqual({ok, 2},
+                     hydrologic:run(test, 2)),
+        ?assertCall(io, format, 2, 0),
+        ?assertEqual({ok, 3},
+                     hydrologic:run(test, 3)),
+        ?assertCall(io, format, 2, 1),
+        hydrologic:stop(test),
+        meck:unload(io)
+    end,
+    fun() ->
+        hydrologic:new(
+          test,
+          [odd]),
+        ?assertEqual({ok, [1, 3]},
+                     hydrologic:run(test, [1, 2, 3, 4])),
+        hydrologic:stop(test)
+    end,
+    fun() ->
+        meck:new(io, [passthrough, unstick]),
+        meck:expect(io, format, fun(_Format, _Data) ->
+                                    % ?debugFmt(Format, Data),
+                                    ok
+                                end),
+        hydrologic:new(
+          test,
+          [
+           {odd, a},
+           {b, return},
+           {a, console},
+           b
+          ]
+         ),
+        ?assertCall(io, format, 2, 0),
+        ?assertEqual({ok, 3},
+                     hydrologic:run(test, 3)),
+        ?assertCall(io, format, 2, 0),
+        ?assertEqual({ok, 2},
+                     hydrologic:run(test, 2)),
+        ?assertCall(io, format, 2, 1),
+        hydrologic:stop(test),
+        meck:unload(io)
     end
    ]}.
