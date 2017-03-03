@@ -20,13 +20,19 @@ __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.le
 
 ### STDLIB ###
 
-`console`
+`console` (map)
 
-`{console, [Format :: string()]}`
+`{console, [Format :: string()]}` (map)
 
-`{match, [Regex :: string()]}`
+`{match, [Regex :: string()]}` (reduce)
 
-`{pad, [Direction :: left | right, Size :: integer(), Char :: integer()]} | {pad, [Size :: integer(), Char :: integer()]}`
+`{pad, [Direction :: left | right, Size :: integer(), Char :: integer()]} | {pad, [Size :: integer(), Char :: integer()]}` (map)
+
+`{chop, [Size :: integer()]}` (map)
+
+`odd` (reduce)
+
+`even` (reduce)
 
 
 ### Create a worker ###
@@ -83,6 +89,21 @@ Redistribution and use in source and binary forms, with or without modification,
 
 
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+### TODO ###
+* CORE: sort - (map, list)
+* CORE: count lines|chars|words - (map, list)
+* CORE: from fun(X) -> true|false end - (map, list)
+* CORE: to fun(X) -> true|false end - (map, list)
+* CORE: unique - (map, list)
+* CODE: head N - (map, list)
+* CODE: tail N - (map, list)
+* CODE: drop head|tail N - (map, list)
+* CODE: split Pattern - (map, elem->list)
+* CODE: join Separator - (map, list->elem)
+* STDLIB: strip left|right|both - (map, elem)
+* STDLIB: replace Regex Repl - (map, elem)
 
 
 ## Modules ##
