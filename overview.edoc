@@ -24,6 +24,8 @@
 
 <tt>{chop, [Size :: integer()]}</tt> (map)
 
+<tt>{between, [Min :: string(), Max :: string()]}</tt> (reduce)
+
 <tt>odd</tt> (reduce)
 
 <tt>even</tt> (reduce)

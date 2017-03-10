@@ -11,6 +11,7 @@
          , pad/3
          , pad/4
          , chop/2
+         , between/3
         ]).
 
 -export([
@@ -50,6 +51,11 @@ pad(Data, left, Size, Char) ->
 
 chop(Data, Size) ->
   bucs:as(Data, string:sub_string(bucs:to_string(Data), 1, Size)).
+
+between(Data, Min, Max) ->
+  {reduce,
+   bucs:to_string(Data) =< bucs:to_string(Max) andalso
+   bucs:to_string(Data) >= bucs:to_string(Min)}.
 
 % Integer
 
