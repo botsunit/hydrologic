@@ -15,7 +15,7 @@ hydrologic_flow_tests_test_() ->
           testf,
           [
            {fun(X) ->
-                {reduce, X rem 2 == 0}
+                {filter, X rem 2 == 0}
             end, a},
            {b, fanin},
            return,
@@ -31,7 +31,7 @@ hydrologic_flow_tests_test_() ->
           test,
           [
            {fun(X) ->
-                {reduce, X rem 2 == 0}
+                {filter, X rem 2 == 0}
             end, aa},
            {bb, return},
            {aa, fun(X) ->

@@ -31,7 +31,7 @@ hydrologic_test_() ->
           test,
           [
            {a, {fun(X) ->
-                    {reduce, X rem 2 == 0}
+                    {filter, X rem 2 == 0}
                 end, b}},
            fun(X) ->
                {map, X * 2}
@@ -51,7 +51,7 @@ hydrologic_test_() ->
           test,
           [
            {fun(X) ->
-                {reduce, X rem 2 == 0}
+                {filter, X rem 2 == 0}
             end, a},
            fun(X) ->
                {map, X * 2}
