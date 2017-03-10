@@ -249,9 +249,9 @@ response(PID, EndPID, #{data := Data} = Record, Function) ->
       case callfun(Function, [Data]) of
         {map, NewData} ->
           PID ! Record#{data => NewData};
-        {reduce, true} ->
+        {filter, true} ->
           PID ! Record;
-        {reduce, false} ->
+        {filter, false} ->
           EndPID ! ok;
         {return, NewData} ->
           EndPID ! Record#{data => NewData};
@@ -269,9 +269,9 @@ response(PID, AltPID, EndPID, #{data := Data} = Record, Function) ->
       case callfun(Function, [Data]) of
         {map, NewData} ->
           PID ! Record#{data => NewData};
-        {reduce, true} ->
+        {filter, true} ->
           PID ! Record;
-        {reduce, false} ->
+        {filter, false} ->
           AltPID ! Record;
         {return, NewData} ->
           EndPID ! Record#{data => NewData};
@@ -290,7 +290,7 @@ flow_response(PID, EndPID, #{data := Data} = Record, Function) ->
       case callfun(Data, Function, '$', [], []) of
         {map, NewData, _} ->
           PID ! Record#{data => NewData};
-        {reduce, NewData, _} ->
+        {filter, NewData, _} ->
           PID ! Record#{data => NewData};
         {return, NewData, _} ->
           EndPID ! Record#{data => NewData};
@@ -306,7 +306,7 @@ flow_response(PID, AltPID, EndPID, #{data := Data} = Record, Function) ->
       case callfun(Data, Function, '$', [], []) of
         {map, NewData, _} ->
           PID ! Record#{data => NewData};
-        {reduce, NewData0, NewData1} ->
+        {filter, NewData0, NewData1} ->
           PID ! Record#{data => NewData0, fan => 0},
           AltPID ! Record#{data => NewData1, fan => 1};
         {return, NewData, _} ->
@@ -388,12 +388,12 @@ callfun([Data|Rest], Function, Type, Acc0, Acc1) ->
 next_call(_, Rest, Function, Type0, Acc0, Acc1, {map, NewData}) when Type0 == map;
                                                                      Type0 == '$' ->
   callfun(Rest, Function, map, [NewData|Acc0], Acc1);
-next_call(Data, Rest, Function, Type0, Acc0, Acc1, {reduce, true}) when Type0 == reduce;
+next_call(Data, Rest, Function, Type0, Acc0, Acc1, {filter, true}) when Type0 == filter;
                                                                         Type0 == '$' ->
-  callfun(Rest, Function, reduce, [Data|Acc0], ['$empty$'|Acc1]);
-next_call(Data, Rest, Function, Type0, Acc0, Acc1, {reduce, false}) when Type0 == reduce;
+  callfun(Rest, Function, filter, [Data|Acc0], ['$empty$'|Acc1]);
+next_call(Data, Rest, Function, Type0, Acc0, Acc1, {filter, false}) when Type0 == filter;
                                                                          Type0 == '$' ->
-  callfun(Rest, Function, reduce, ['$empty$'|Acc0], [Data|Acc1]);
+  callfun(Rest, Function, filter, ['$empty$'|Acc0], [Data|Acc1]);
 next_call(_, Rest, Function, Type0, Acc0, Acc1, {return, NewData}) when Type0 == return;
                                                                         Type0 == '$' ->
   callfun(Rest, Function, return, [NewData|Acc0], Acc1);

@@ -24,15 +24,17 @@ __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.le
 
 `{console, [Format :: string()]}` (map)
 
-`{match, [Regex :: string()]}` (reduce)
+`{match, [Regex :: string()]}` (filter)
 
 `{pad, [Direction :: left | right, Size :: integer(), Char :: integer()]} | {pad, [Size :: integer(), Char :: integer()]}` (map)
 
 `{chop, [Size :: integer()]}` (map)
 
-`odd` (reduce)
+`{between, [Min :: string(), Max :: string()]}` (filter)
 
-`even` (reduce)
+`odd` (filter)
+
+`even` (filter)
 
 
 ### Create a worker ###
@@ -41,7 +43,7 @@ __Authors:__ Gregoire Lejeune ([`gregoire.lejeune@gmail.com`](mailto:gregoire.le
 
 -spec worker(data()) -> {map, data()}
                         | data()
-                        | {reduce, true | false}
+                        | {filter, true | false}
                         | {return, data()}
                         | {error, term()}.
 
@@ -58,7 +60,7 @@ hydrologic:new(
   test,
   [
    {a, {fun(X) ->
-            {reduce, X rem 2 == 0}
+            {filter, X rem 2 == 0}
         end, b}},
    fun(X) ->
        {map, X * 2}

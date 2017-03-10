@@ -18,24 +18,24 @@
 
 <tt>{console, [Format :: string()]}</tt> (map)
 
-<tt>{match, [Regex :: string()]}</tt> (reduce)
+<tt>{match, [Regex :: string()]}</tt> (filter)
 
 <tt>{pad, [Direction :: left | right, Size :: integer(), Char :: integer()]} | {pad, [Size :: integer(), Char :: integer()]}</tt> (map)
 
 <tt>{chop, [Size :: integer()]}</tt> (map)
 
-<tt>{between, [Min :: string(), Max :: string()]}</tt> (reduce)
+<tt>{between, [Min :: string(), Max :: string()]}</tt> (filter)
 
-<tt>odd</tt> (reduce)
+<tt>odd</tt> (filter)
 
-<tt>even</tt> (reduce)
+<tt>even</tt> (filter)
 
 <h3>Create a worker</h3>
 
 <pre>
 -spec worker(data()) -> {map, data()}
                         | data()
-                        | {reduce, true | false}
+                        | {filter, true | false}
                         | {return, data()}
                         | {error, term()}.
 </pre>
@@ -49,7 +49,7 @@ hydrologic:new(
   test,
   [
    {a, {fun(X) ->
-            {reduce, X rem 2 == 0}
+            {filter, X rem 2 == 0}
         end, b}},
    fun(X) ->
        {map, X * 2}

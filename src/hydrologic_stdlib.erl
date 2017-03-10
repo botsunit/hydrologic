@@ -36,9 +36,9 @@ console(Data, Format) ->
 match(Data, Regex) ->
   case re:run(bucs:to_string(Data), bucs:to_string(Regex), [global]) of
     {match, _} ->
-      {reduce, true};
+      {filter, true};
     _ ->
-      {reduce, false}
+      {filter, false}
   end.
 
 pad(Data, Size, Char) ->
@@ -53,15 +53,15 @@ chop(Data, Size) ->
   bucs:as(Data, string:sub_string(bucs:to_string(Data), 1, Size)).
 
 between(Data, Min, Max) ->
-  {reduce,
+  {filter,
    bucs:to_string(Data) =< bucs:to_string(Max) andalso
    bucs:to_string(Data) >= bucs:to_string(Min)}.
 
 % Integer
 
 even(Data) ->
-  {reduce, Data rem 2 == 0}.
+  {filter, Data rem 2 == 0}.
 
 odd(Data) ->
-  {reduce, Data rem 2 /= 0}.
+  {filter, Data rem 2 /= 0}.
 
